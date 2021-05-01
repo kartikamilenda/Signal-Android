@@ -1,6 +1,8 @@
 package org.thoughtcrime.securesms.mediasend;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.PorterDuff;
@@ -18,6 +20,7 @@ import android.view.inputmethod.EditorInfo;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.DialogInterface;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -76,6 +79,7 @@ import org.thoughtcrime.securesms.util.views.SimpleProgressDialog;
 import org.thoughtcrime.securesms.util.views.Stub;
 import org.thoughtcrime.securesms.video.VideoUtil;
 import org.whispersystems.libsignal.util.guava.Optional;
+import org.thoughtcrime.securesms.ExpirationDialog;
 
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
@@ -107,7 +111,7 @@ public class MediaSendActivity extends PassphraseRequiredActivity implements Med
                                                                                       InputAwareLayout.OnKeyboardShownListener,
                                                                                       InputAwareLayout.OnKeyboardHiddenListener
 {
-  private static final String TAG = Log.tag(MediaSendActivity.class);
+  private static final String TAG = MediaSendActivity.class.getSimpleName();
 
   public static final String EXTRA_RESULT    = "result";
 
@@ -667,6 +671,27 @@ public class MediaSendActivity extends PassphraseRequiredActivity implements Med
     finish();
   }
 
+  private Dialog sendOnceAlert(){
+    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    builder.setTitle("Confirm Image");
+    builder.setMessage("Your Image will be viewed just once by receiver")
+            .setIcon(R.drawable.ic_view_once_24)
+            .setCancelable(false)
+            .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+              @Override
+              public void onClick(DialogInterface dialogInterface, int i) {
+                return;
+              }
+            })
+            .setPositiveButton("Continue", new DialogInterface.OnClickListener() {
+              @Override
+              public void onClick(DialogInterface dialogInterface, int i) {
+                onSendClicked();
+              }
+            });
+    return builder.create();
+  }
+
   private void initViewModel() {
     LiveData<Pair<HudState, Boolean>> hudStateAndMentionShowing = LiveDataUtil.combineLatest(viewModel.getHudState(),
                                                                                              mentionsViewModel != null ? mentionsViewModel.isShowing()
@@ -681,6 +706,7 @@ public class MediaSendActivity extends PassphraseRequiredActivity implements Med
       if (state.getRailState() == MediaSendViewModel.RailState.VIEWABLE) {
         captionBackground = R.color.core_grey_90;
       } else if (state.getViewOnceState() == ViewOnceState.ENABLED) {
+        sendOnceAlert().show();
         captionBackground = 0;
       } else if (isMentionPickerShowing){
         captionBackground = R.color.signal_background_dialog;
